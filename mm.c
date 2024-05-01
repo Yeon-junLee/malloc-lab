@@ -147,18 +147,18 @@ void mm_free(void *ptr)
  */
 void *mm_realloc(void *ptr, size_t size)
 {
-    void *oldptr = ptr;
-    void *newptr;
-    size_t copySize;
+    void *oldptr = ptr;                                                          // 원본 블록의 pointer
+    void *newptr;                                                                // realloc한 뒤의 pointer
+    size_t copySize;                                                             // 원본 블록의 데이터의 사이즈
     
-    newptr = mm_malloc(size);
-    if (newptr == NULL)
+    newptr = mm_malloc(size);                                                    // 새로 realloc할 사이즈 만큼 할당
+    if (newptr == NULL)                                                          // 할당 실패하면 NULL return
       return NULL;
-    copySize = GET_SIZE(HDRP(oldptr));
-    if (size < copySize)
-      copySize = size;
-    memcpy(newptr, oldptr, copySize);
-    mm_free(oldptr);
+    copySize = GET_SIZE(HDRP(oldptr));                                           
+    if (size < copySize)                                                         // 만약 realloc을 사이즈를 줄여서 한다면
+      copySize = size;                                                           // 복사할 데이터를 size만큼 자름
+    memcpy(newptr, oldptr, copySize);                                            // 복붙 과정
+    mm_free(oldptr);                                                             // 원래 블록 free
     return newptr;
 }
 
@@ -275,11 +275,11 @@ static void *find_fit(size_t asize) {
     /* explicit */
 
     /* first-fit */
-    void *bp = heap_listp;
+    void *bp = heap_listp;                                                  // heap의 시작 부분부터 탐색 시작
     while(bp != NULL) {
-        if(asize <= GET_SIZE((HDRP(bp))))   return bp;
+        if(asize <= GET_SIZE((HDRP(bp))))   return bp;                      // 들어갈 수 있는 block 찾으면 바로 들어가기
 
-        bp = GET_SUCC(bp);
+        bp = GET_SUCC(bp);                                                  // 못 찾으면 successor(다음) 블록
     }
 
     return NULL;
@@ -311,34 +311,34 @@ static void place(void *bp, size_t asize) {
 
     size_t csize = GET_SIZE(HDRP(bp));                      // 현재 블록의 사이즈
 
-    if((csize - asize) >= (2 * DSIZE)) {
-        PUT(HDRP(bp), PACK(asize, 1));
+    if((csize - asize) >= (2 * DSIZE)) {                    // 만약 블록의 사이즈 - 할당받을 사이즈 >= 16바이트 라면(남는 크기가 16바이트보다 많다면)
+        PUT(HDRP(bp), PACK(asize, 1));                      // 할당 받을 크기만큼 할당하고
         PUT(FTRP(bp), PACK(asize, 1));
         bp = NEXT_BLKP(bp);
-        PUT(HDRP(bp), PACK(csize - asize, 0));
+        PUT(HDRP(bp), PACK(csize - asize, 0));              // 남는건 가용 블록으로 자름
         PUT(FTRP(bp), PACK(csize - asize, 0));
-        insert_free_block(bp);
+        insert_free_block(bp);                              // 남은 가용 블록을 가용 리스트에 추가
     }
-    else {
+    else {                                                  // 남는 크기가 16바이트보다 작으면 그냥 할당
         PUT(HDRP(bp), PACK(csize, 1));
         PUT(FTRP(bp), PACK(csize, 1));
     }
 }
 
-static void delete_free_block(void *bp) {
-    if(bp == heap_listp) {
-        heap_listp = GET_SUCC(heap_listp);
+static void delete_free_block(void *bp) {                   // 가용 리스트에서 제거하는 함수
+    if(bp == heap_listp) {                                  // 할당하는 블록이 가용 리스트의 맨 앞에 있는 block이라면
+        heap_listp = GET_SUCC(heap_listp);                  // 가용 리스트의 시작을 다음 블록으로 옮김
         return;
     }
 
-    GET_SUCC(GET_PRED(bp)) = GET_SUCC(bp);
+    GET_SUCC(GET_PRED(bp)) = GET_SUCC(bp);                  // 내 이전 블록의 다음을 나의 다음 블록으로 이어주는 과정(linked list에서 중간 노드 제거했을 때와 동일)
 
     if(GET_SUCC(bp) != NULL)
         GET_PRED(GET_SUCC(bp)) = GET_PRED(bp);
 }
 
-static void insert_free_block(void *bp) {
-    GET_SUCC(bp) = heap_listp;
+static void insert_free_block(void *bp) {                   // 가용 리스트에 블록을 추가하는 함수
+    GET_SUCC(bp) = heap_listp;                              // LIFO이기 때문에 가용 리스트 맨 앞에 넣어야함
     if(heap_listp != NULL)
         GET_PRED(heap_listp) = bp;
     heap_listp = bp;
